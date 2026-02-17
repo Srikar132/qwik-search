@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qwik — AI Assistant for Windows</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            mono: ['DM Mono', 'monospace'],
+          },
+          colors: {
+            brand: '#3BFFA3',
+            dark:  '#090C0F',
+            panel: '#0F1318',
+            edge:  '#1C2128',
+          },
+          animation: {
+            'fade-up':   'fadeUp 0.7s ease forwards',
+            'fade-up-2': 'fadeUp 0.7s 0.15s ease forwards',
+            'fade-up-3': 'fadeUp 0.7s 0.30s ease forwards',
+            'fade-up-4': 'fadeUp 0.7s 0.45s ease forwards',
+            'pulse-dot':  'pulseDot 2s infinite',
+            'glow':       'glow 3s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeUp: {
+              '0%':   { opacity: '0', transform: 'translateY(24px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            pulseDot: {
+              '0%, 100%': { opacity: '1' },
+              '50%':       { opacity: '0.3' },
+            },
+            glow: {
+              '0%, 100%': { boxShadow: '0 0 20px 2px rgba(59,255,163,0.15)' },
+              '50%':      { boxShadow: '0 0 40px 8px rgba(59,255,163,0.30)' },
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body { background-color: #090C0F; }
+
+    /* Diagonal grid background */
+    .bg-grid {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* Noise overlay */
+    .noise::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      z-index: 9999;
+    }
+
+    /* Glowing accent top bar */
+    .top-glow {
+      background: linear-gradient(90deg, transparent, #3BFFA3, transparent);
+      height: 1px;
+    }
+
+    /* Download button glow pulse */
+    .btn-download {
+      background: #3BFFA3;
+      color: #090C0F;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(59,255,163,0.45);
+    }
+    .btn-download::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%);
+    }
+    .btn-download:active {
+      transform: translateY(0);
+    }
+
+    /* Windows-not-detected state */
+    .non-windows-msg { display: none; }
+
+    /* Code tag inline */
+    .tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      background: rgba(59,255,163,0.1);
+      color: #3BFFA3;
+      border: 1px solid rgba(59,255,163,0.25);
+      padding: 1px 7px;
+      border-radius: 4px;
+    }
+
+    /* Opacity 0 for animated els */
+    .anim-el { opacity: 0; }
+  </style>
+</head>
+
+<body class="bg-grid noise font-display text-white min-h-screen">
+
+  <!-- Top glow line -->
+  <div class="top-glow w-full"></div>
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-5 max-w-6xl mx-auto">
+    <div class="flex items-center gap-2">
+      <div class="w-2 h-2 rounded-full bg-brand animate-pulse-dot"></div>
+      <span class="font-display font-700 text-lg tracking-tight">Qwik</span>
+    </div>
+    <span class="tag">v1.0.0</span>
+  </nav>
+
+  <!-- Hero -->
+  <main class="max-w-6xl mx-auto px-8 pt-24 pb-32">
+
+    <!-- Eyebrow -->
+    <div class="anim-el animate-fade-up flex items-center gap-3 mb-8">
+      <span class="tag">Alt + Q to launch</span>
+      <span class="text-white/30 text-sm font-mono">Windows only</span>
+    </div>
+
+    <!-- Headline -->
+    <h1 class="anim-el animate-fade-up-2 font-display font-extrabold text-[clamp(2.8rem,8vw,6.5rem)] leading-[0.95] tracking-tight text-white max-w-4xl">
+      Your AI assistant.<br />
+      <span class="text-brand">Always one shortcut</span><br />
+      away.
+    </h1>
+
+    <!-- Subtext -->
+    <p class="anim-el animate-fade-up-3 mt-8 text-white/50 text-lg font-display font-medium max-w-xl leading-relaxed">
+      Qwik lives silently in your taskbar. Hit <span class="tag">Alt + Q</span> anywhere on your desktop to summon an instant AI chat — then dismiss it just as fast.
+    </p>
+
+    <!-- Download CTA -->
+    <div class="anim-el animate-fade-up-4 mt-12 flex flex-wrap items-center gap-5">
+
+      <!-- Windows download button (shown only on Windows) -->
+      <div id="win-block">
+        <a
+          id="download-btn"
+          href="https://github.com/Srikar132/qwik-search/releases/download/qwik/Qwik.Search.Setup.1.0.0.exe"
+          download
+          class="btn-download inline-flex items-center gap-3 px-8 py-4 rounded-xl font-display font-bold text-lg"
+        >
+          <!-- Windows logo SVG -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.549H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.851"/>
+          </svg>
+          Download for Windows
+        </a>
+        <p class="mt-3 text-white/30 text-sm font-mono">Free · No account required · ~XX MB</p>
+      </div>
+
+      <!-- Non-Windows message -->
+      <div id="non-win-block" class="non-windows-msg">
+        <div class="flex items-center gap-3 px-6 py-4 rounded-xl border border-edge bg-panel text-white/50 font-display">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Qwik is currently available for <strong class="text-white ml-1">Windows only.</strong>
+        </div>
+        <p class="mt-3 text-white/30 text-sm font-mono">macOS &amp; Linux support coming soon.</p>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="mt-24 border-t border-edge"></div>
+
+    <!-- Feature grid -->
+    <div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <div class="rounded-2xl border border-edge bg-panel p-8 hover:border-brand/40 transition-colors duration-300">
+        <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3BFFA3" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
+        <h3 class="font-display font-bold text-lg mb-2">Instant launch</h3>
+        <p class="text-white/40 text-sm leading-relaxed font-display font-medium">No clicking through menus. <span class="tag">Alt + Q</span> from anywhere brings Qwik up in under 100ms.</p>
+      </div>
+
+      <div class="rounded-2xl border border-edge bg-panel p-8 hover:border-brand/40 transition-colors duration-300">
+        <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3BFFA3" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <h3 class="font-display font-bold text-lg mb-2">Streaming AI chat</h3>
+        <p class="text-white/40 text-sm leading-relaxed font-display font-medium">Powered by Claude. Responses stream in real-time so you never wait for a wall of text.</p>
+      </div>
+
+      <div class="rounded-2xl border border-edge bg-panel p-8 hover:border-brand/40 transition-colors duration-300">
+        <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3BFFA3" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </div>
+        <h3 class="font-display font-bold text-lg mb-2">Stays out of the way</h3>
+        <p class="text-white/40 text-sm leading-relaxed font-display font-medium">Frameless, transparent, always-on-top. Disappears the moment you click away.</p>
+      </div>
+    </div>
+
+    <!-- How to install -->
+    <div class="mt-20 rounded-2xl border border-edge bg-panel p-10">
+      <h2 class="font-display font-bold text-2xl mb-8">Get up in 30 seconds</h2>
+      <div class="flex flex-col gap-5">
+        <div class="flex items-start gap-5">
+          <span class="shrink-0 w-8 h-8 rounded-full border border-brand/40 text-brand font-mono text-sm flex items-center justify-center">1</span>
+          <div>
+            <p class="font-display font-semibold">Download the installer</p>
+            <p class="text-white/40 text-sm mt-1">Click the button above to download <span class="tag">Qwik-Setup.exe</span></p>
+          </div>
+        </div>
+        <div class="flex items-start gap-5">
+          <span class="shrink-0 w-8 h-8 rounded-full border border-brand/40 text-brand font-mono text-sm flex items-center justify-center">2</span>
+          <div>
+            <p class="font-display font-semibold">Run the installer</p>
+            <p class="text-white/40 text-sm mt-1">Windows may show a SmartScreen prompt — click <span class="tag">More info → Run anyway</span></p>
+          </div>
+        </div>
+        <div class="flex items-start gap-5">
+          <span class="shrink-0 w-8 h-8 rounded-full border border-brand/40 text-brand font-mono text-sm flex items-center justify-center">3</span>
+          <div>
+            <p class="font-display font-semibold">Press Alt + Q anywhere</p>
+            <p class="text-white/40 text-sm mt-1">Qwik starts silently at login. Hit the shortcut to summon it whenever you need it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-edge">
+    <div class="max-w-6xl mx-auto px-8 py-8 flex items-center justify-between">
+      <span class="text-white/20 text-sm font-mono">© 2025 Qwik</span>
+      <span class="text-white/20 text-sm font-mono">Windows 10 / 11</span>
+    </div>
+  </footer>
+
+  <script>
+    // Platform detection — show download only on Windows
+    const isWindows = navigator.userAgentData
+      ? navigator.userAgentData.platform === 'Windows'
+      : /Win/i.test(navigator.platform);
+
+    if (!isWindows) {
+      document.getElementById('win-block').style.display = 'none';
+      document.getElementById('non-win-block').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

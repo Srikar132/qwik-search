@@ -46,11 +46,6 @@ declare global {
           stream?: boolean;
         }) => Promise<AsyncGenerator<PuterAIStreamChunk, void, unknown> | PuterAIResponse>;
       };
-      auth: {
-        authenticate: () => Promise<any>;
-        isSignedIn: () => boolean;
-      };
-      kv: any;
     };
   }
 }
@@ -59,69 +54,15 @@ interface UsePuterAIReturn {
   response: string;
   loading: boolean;
   isStreaming: boolean;
-  isAuthenticated: boolean;
   search: (query: string) => Promise<void>;
   clearResponse: () => void;
-  authenticate: () => Promise<void>;
 }
 
 export const usePuterAI = (): UsePuterAIReturn => {
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Check if Puter SDK is loaded and authenticate
-  useEffect(() => {
-    const checkSDK = async () => {
-      if (window.puter && window.puter.ai) {
-        console.log('Puter SDK is ready');
-        
-        // Check if already authenticated
-        try {
-          if (window.puter.auth && window.puter.auth.isSignedIn()) {
-            console.log('✅ Already authenticated with Puter');
-            setIsAuthenticated(true);
-          } else {
-            console.log('⚠️ Not authenticated, attempting auto-authentication...');
-            // Try to authenticate
-            if (window.puter.auth && window.puter.auth.authenticate) {
-              await window.puter.auth.authenticate();
-              setIsAuthenticated(true);
-              console.log('✅ Authentication successful');
-            }
-          }
-        } catch (error) {
-          console.error('Authentication failed:', error);
-          setIsAuthenticated(false);
-        }
-        
-        return true;
-      }
-      return false;
-    };
-
-    // Check immediately
-    checkSDK();
-
-    // If not ready, poll for SDK availability
-    let attempts = 0;
-    const maxAttempts = 50; // 5 seconds max wait
-    const interval = setInterval(() => {
-      attempts++;
-      checkSDK().then(ready => {
-        if (ready) {
-          clearInterval(interval);
-        } else if (attempts >= maxAttempts) {
-          console.error('Puter SDK failed to load after 5 seconds');
-          clearInterval(interval);
-        }
-      });
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -144,13 +85,6 @@ export const usePuterAI = (): UsePuterAIReturn => {
   const search = async (query: string) => {
     if (!query.trim()) return;
     
-    // Check if SDK is available
-    if (!window.puter || !window.puter.ai) {
-      console.error('Puter SDK not available');
-      setResponse('Error: Puter AI SDK is not loaded. Please check your internet connection and restart the application.');
-      return;
-    }
-    
     // Abort any existing stream
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -164,13 +98,10 @@ export const usePuterAI = (): UsePuterAIReturn => {
     
     try {
       console.log('Starting streaming chat with query:', query);
-      console.log('Puter SDK status:', { hasPuter: !!window.puter, hasAI: !!(window.puter?.ai) });
-      console.log('Authentication status:', window.puter.auth?.isSignedIn());
       
-      // Use Puter AI with a free model that works
-      // Try gpt-4o-mini (free tier) instead of claude-opus-4-5
+      // Use Puter AI to get the streaming response - exactly like the HTML example
       const stream = await window.puter.ai.chat(query, { 
-        model: "gpt-4o-mini",  // Changed to a free model
+        model: "claude-opus-4-5",
         stream: true 
       }) as AsyncGenerator<PuterAIStreamChunk, void, unknown>;
       
@@ -218,26 +149,11 @@ export const usePuterAI = (): UsePuterAIReturn => {
     }
   };
 
-  const authenticate = async () => {
-    try {
-      if (window.puter && window.puter.auth) {
-        await window.puter.auth.authenticate();
-        setIsAuthenticated(true);
-        console.log('✅ Manual authentication successful');
-      }
-    } catch (error) {
-      console.error('Manual authentication failed:', error);
-      throw error;
-    }
-  };
-
   return {
     response,
     loading,
     isStreaming,
-    isAuthenticated,
     search,
-    clearResponse,
-    authenticate
+    clearResponse
   };
 };

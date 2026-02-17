@@ -165,5 +165,7 @@ Found a bug? Please open an issue on [GitHub Issues](https://github.com/Srikar13
 If you find this project useful, please consider giving it a star! ⭐
 
 ---
-
+[Visit Qwik App](https://qwik-iota.vercel.app/)
 **Made with ❤️ by [Srikar](https://github.com/Srikar132) , [nikhil](https://github.com/Sainikhil-315)**
+
+

@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
@@ -9,10 +9,42 @@ import { usePuterAI } from './hooks/usePuterAI';
 
 const App: React.FC = () => {
   const [query, setQuery] = useState('');
+  const [sdkStatus, setSdkStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const inputRef = useRef<HTMLInputElement>(null);
   
   // Use the custom hook for Puter AI
-  const { response, loading, isStreaming, search, clearResponse } = usePuterAI();
+  const { response, loading, isStreaming, isAuthenticated, search, clearResponse, authenticate } = usePuterAI();
+
+  // Check SDK status
+  useEffect(() => {
+    console.log('App mounted, checking for Puter SDK...');
+    const checkSDK = () => {
+      if (window.puter && window.puter.ai) {
+        console.log('✅ Puter SDK detected in App component');
+        setSdkStatus('ready');
+        return true;
+      }
+      return false;
+    };
+
+    if (checkSDK()) return;
+
+    let attempts = 0;
+    const maxAttempts = 100; // 10 seconds
+    const interval = setInterval(() => {
+      attempts++;
+      console.log(`Checking for SDK... attempt ${attempts}`);
+      if (checkSDK()) {
+        clearInterval(interval);
+      } else if (attempts >= maxAttempts) {
+        console.error('❌ SDK failed to load after 10 seconds');
+        setSdkStatus('error');
+        clearInterval(interval);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -33,6 +65,59 @@ const App: React.FC = () => {
 
   return (
     <div className="command-palette">
+      {sdkStatus === 'error' && (
+        <div style={{
+          background: '#ff4444',
+          color: 'white',
+          padding: '8px 12px',
+          fontSize: '12px',
+          textAlign: 'center',
+          marginBottom: '8px',
+          borderRadius: '4px'
+        }}>
+          ⚠️ SDK Failed to Load. Check internet connection and DevTools console.
+        </div>
+      )}
+      {sdkStatus === 'loading' && (
+        <div style={{
+          background: '#4444ff',
+          color: 'white',
+          padding: '8px 12px',
+          fontSize: '12px',
+          textAlign: 'center',
+          marginBottom: '8px',
+          borderRadius: '4px'
+        }}>
+          🔄 Loading SDK...
+        </div>
+      )}
+      {sdkStatus === 'ready' && !isAuthenticated && (
+        <div style={{
+          background: '#ff8800',
+          color: 'white',
+          padding: '8px 12px',
+          fontSize: '12px',
+          textAlign: 'center',
+          marginBottom: '8px',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }} onClick={authenticate}>
+          🔐 Click here to login to Puter (Required for AI)
+        </div>
+      )}
+      {isAuthenticated && (
+        <div style={{
+          background: '#00aa00',
+          color: 'white',
+          padding: '4px 12px',
+          fontSize: '11px',
+          textAlign: 'center',
+          marginBottom: '4px',
+          borderRadius: '4px'
+        }}>
+          ✅ Authenticated
+        </div>
+      )}
       <div className="search-container">
         {loading || isStreaming ? (
           <span className="search-icon loading">
@@ -64,12 +149,12 @@ const App: React.FC = () => {
           ref={inputRef}
           type="text"
           className="search-input"
-          placeholder="Qwik Search"
+          placeholder={isAuthenticated ? "Qwik Search" : "Login required..."}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyPress={handleKeyPress}
           autoFocus
-          disabled={isStreaming}
+          disabled={isStreaming || !isAuthenticated}
         />
       </div>
       

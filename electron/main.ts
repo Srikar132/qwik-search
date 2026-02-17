@@ -1,8 +1,25 @@
 // electron/main.ts
-import { app, BrowserWindow, globalShortcut, screen } from 'electron';
+import { app, BrowserWindow, globalShortcut, screen, protocol, net } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 
 let mainWindow: BrowserWindow | null = null;
+
+// Register custom protocol BEFORE app is ready.
+// This gives the packaged app a real origin (app://localhost) instead of file://
+// Puter's SDK blocks file:// as a null/opaque origin → 403. app:// is accepted.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -17,22 +34,21 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
     },
-    // Enable window dragging without title bar
     titleBarStyle: 'hidden'
   });
 
-  // Load the app
   const isDev = !app.isPackaged;
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // Load via custom protocol so origin = app://localhost (not file://)
+    mainWindow.loadURL('app://localhost/index.html');
   }
 
-  // Hide window when it loses focus
   mainWindow.on('blur', () => {
     if (mainWindow && !mainWindow.webContents.isDevToolsOpened()) {
       mainWindow.hide();
@@ -46,14 +62,13 @@ function toggleWindow() {
   if (mainWindow.isVisible()) {
     mainWindow.hide();
   } else {
-    // Center the window on the primary display
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.workAreaSize;
-    
+
     const windowBounds = mainWindow.getBounds();
     const x = Math.floor((width - windowBounds.width) / 2);
-    const y = Math.floor(height / 4); // Position in upper third of screen
-    
+    const y = Math.floor(height / 4);
+
     mainWindow.setPosition(x, y);
     mainWindow.show();
     mainWindow.focus();
@@ -61,12 +76,27 @@ function toggleWindow() {
 }
 
 app.whenReady().then(() => {
+  // Serve built files via app:// protocol
+  protocol.handle('app', (request) => {
+    const url = new URL(request.url);
+    let filePath = url.pathname;
+
+    if (filePath.startsWith('/')) filePath = filePath.slice(1);
+    if (!filePath) filePath = 'index.html';
+
+    const distPath = path.join(__dirname, '../dist', filePath);
+
+    // Serve file if it exists, otherwise fall back to index.html (SPA routing)
+    const resolvedPath = fs.existsSync(distPath)
+      ? distPath
+      : path.join(__dirname, '../dist/index.html');
+
+    return net.fetch(`file://${resolvedPath}`);
+  });
+
   createWindow();
 
-  // Register global shortcut
-  // Try to unregister first in case it's already registered
   globalShortcut.unregister('Alt+Q');
-
   const ret = globalShortcut.register('Alt+Q', () => {
     toggleWindow();
   });

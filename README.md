@@ -166,4 +166,4 @@ If you find this project useful, please consider giving it a star! ⭐
 
 ---
 
-**Made with ❤️ by [Srikar](https://github.com/Srikar132)**
+**Made with ❤️ by [Srikar](https://github.com/Srikar132) , [nikhil](https://github.com/Sainikhil-315)**
